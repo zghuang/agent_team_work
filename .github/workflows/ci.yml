@@ -6,7 +6,12 @@ on:
   pull_request:
     branches: [develop, main]
 
+env:
+  NODE_VERSION: '20'
+  RUST_VERSION: stable
+
 jobs:
+  # Frontend CI
   build-frontend:
     runs-on: ubuntu-latest
     steps:
@@ -15,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: trading-frontend/package-lock.json
       
@@ -23,6 +28,16 @@ jobs:
         run: |
           cd trading-frontend
           npm ci
+      
+      - name: Lint
+        run: |
+          cd trading-frontend
+          npm run lint
+      
+      - name: Type check
+        run: |
+          cd trading-frontend
+          npx tsc --noEmit
       
       - name: Build frontend
         run: |
@@ -35,27 +50,69 @@ jobs:
           name: frontend-build
           path: trading-frontend/dist
 
+  # Backend CI
   build-backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
       
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: './trading-backend -> target'
       
-      - name: Build backend
+      - name: Check code
         run: |
           cd trading-backend
-          cargo build --release
+          cargo check --all-targets
+          cargo clippy -- -D warnings
       
       - name: Run tests
         run: |
           cd trading-backend
           cargo test
+      
+      - name: Build backend
+        run: |
+          cd trading-backend
+          cargo build --release
+
+  # Docker build test
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker images
+        run: |
+          docker-compose build --parallel
+
+  # Deploy to staging (on develop branch)
+  deploy-staging:
+    needs: [build-frontend, build-backend, docker-build]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging..."
+          # Add your deployment commands here
+
+  # Deploy to production (on main branch)
+  deploy-production:
+    needs: [build-frontend, build-backend, docker-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production..."
+          # Add your deployment commands here
