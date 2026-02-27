@@ -9,10 +9,26 @@ use tracing_subscriber;
 mod api;
 mod db;
 mod models;
+mod exchange;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
+
+    // Initialize exchange service
+    let exchange_service = exchange::ExchangeService::new();
+    
+    // Start WebSocket for common symbols
+    let exchange_for_ws = exchange_service.clone();
+    tokio::spawn(async move {
+        exchange_for_ws.start_websocket(vec![
+            "btcusdt".to_string(),
+            "ethusdt".to_string(),
+            "bnbusdt".to_string(),
+            "solusdt".to_string(),
+            "xrpusdt".to_string(),
+        ]).await;
+    });
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -32,6 +48,10 @@ async fn main() {
         .route("/api/orders", post(api::create_order))
         .route("/api/v1/messages", get(api::list_messages))
         .route("/api/v1/messages/fetch", get(api::fetch_crypto_prices))
+        // Exchange API routes
+        .route("/api/v1/prices", get(exchange::api::get_prices))
+        .route("/api/v1/price", get(exchange::api::get_price))
+        .with_state(exchange_service)
         .layer(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));

@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickSeries, Time } from 'lightweight-charts';
+import useCryptoPrices from '../hooks/useCryptoPrices';
 
 interface ChartProps {
   symbol: string;
@@ -7,6 +8,15 @@ interface ChartProps {
 
 export default function TradingChart({ symbol }: ChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const { prices } = useCryptoPrices();
+
+  useEffect(() => {
+    const ticker = prices.find(p => p.symbol === `${symbol}USDT`);
+    if (ticker) {
+      setCurrentPrice(ticker.price);
+    }
+  }, [prices, symbol]);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -52,11 +62,13 @@ export default function TradingChart({ symbol }: ChartProps) {
     };
   }, [symbol]);
 
+  const ticker = prices.find(p => p.symbol === `${symbol}USDT`);
+
   return (
     <div className="trading-chart">
       <div className="chart-header">
         <h3>{symbol}/USD</h3>
-        <span className="price">${generateRandomPrice().toFixed(2)}</span>
+        <span className="price">${currentPrice > 0 ? currentPrice.toLocaleString() : (ticker?.price.toLocaleString() || '0.00')}</span>
       </div>
       <div ref={chartContainerRef} className="chart-container" />
     </div>
@@ -87,8 +99,4 @@ function generateSampleData() {
   }
 
   return data;
-}
-
-function generateRandomPrice() {
-  return 45000 + Math.random() * 5000;
 }
