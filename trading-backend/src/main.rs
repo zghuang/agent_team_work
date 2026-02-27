@@ -30,6 +30,8 @@ async fn main() {
         .route("/api/trades", get(db::handlers::list_trades))
         .route("/api/orders", get(api::list_orders))
         .route("/api/orders", post(api::create_order))
+        .route("/api/v1/messages", get(api::list_messages))
+        .route("/api/v1/messages/fetch", get(api::fetch_crypto_prices))
         .layer(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
