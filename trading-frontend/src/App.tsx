@@ -1,8 +1,26 @@
 import { useState } from 'react';
 import Dashboard from './pages/Dashboard';
+import Markets from './pages/Markets';
+import Strategies from './pages/Strategies';
+import Trading from './pages/Trading';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
+
+  const renderPage = () => {
+    switch(currentPage) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'markets':
+        return <Markets />;
+      case 'strategies':
+        return <Strategies />;
+      case 'trading':
+        return <Trading />;
+      default:
+        return <Dashboard />;
+    }
+  };
 
   return (
     <div className="app">
@@ -18,6 +36,12 @@ function App() {
             Dashboard
           </li>
           <li 
+            className={currentPage === 'markets' ? 'active' : ''}
+            onClick={() => setCurrentPage('markets')}
+          >
+            Markets
+          </li>
+          <li 
             className={currentPage === 'trading' ? 'active' : ''}
             onClick={() => setCurrentPage('trading')}
           >
@@ -29,28 +53,10 @@ function App() {
           >
             Strategies
           </li>
-          <li 
-            className={currentPage === 'messages' ? 'active' : ''}
-            onClick={() => setCurrentPage('messages')}
-          >
-            Messages
-          </li>
-          <li 
-            className={currentPage === 'settings' ? 'active' : ''}
-            onClick={() => setCurrentPage('settings')}
-          >
-            Settings
-          </li>
         </ul>
       </nav>
       <main className="main-content">
-        {currentPage === 'dashboard' && <Dashboard />}
-        {currentPage !== 'dashboard' && (
-          <div className="coming-soon">
-            <h2>{currentPage.charAt(0).toUpperCase() + currentPage.slice(1)}</h2>
-            <p>Coming soon...</p>
-          </div>
-        )}
+        {renderPage()}
       </main>
     </div>
   );
