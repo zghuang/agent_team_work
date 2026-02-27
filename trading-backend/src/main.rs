@@ -7,6 +7,8 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber;
 
 mod api;
+mod db;
+mod models;
 
 #[tokio::main]
 async fn main() {
@@ -20,6 +22,12 @@ async fn main() {
     let app = Router::new()
         .route("/", get(root))
         .route("/api/health", get(api::health))
+        .route("/api/users", get(db::handlers::list_users))
+        .route("/api/strategies", get(db::handlers::list_strategies))
+        .route("/api/strategies/:id", get(db::handlers::get_strategy))
+        .route("/api/messages", get(db::handlers::list_messages))
+        .route("/api/messages", post(db::handlers::create_message))
+        .route("/api/trades", get(db::handlers::list_trades))
         .route("/api/orders", get(api::list_orders))
         .route("/api/orders", post(api::create_order))
         .layer(cors);
@@ -32,5 +40,5 @@ async fn main() {
 }
 
 async fn root() -> &'static str {
-    "Trading Backend API"
+    "Trading Backend API v1.0"
 }
