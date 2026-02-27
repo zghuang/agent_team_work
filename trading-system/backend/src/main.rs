@@ -5,6 +5,7 @@ mod core;
 mod data;
 mod models;
 
+use api::websocket::WsState;
 use axum::Router;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
@@ -13,7 +14,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone)]
 struct AppState {
-    // Application state will be added here
+    ws_state: WsState,
 }
 
 #[tokio::main]
@@ -36,12 +37,15 @@ async fn main() {
         .allow_headers(Any);
 
     // Build application state
-    let state = AppState {};
+    let state = AppState {
+        ws_state: WsState::new(),
+    };
 
     // Build router
     let app = Router::new()
         .merge(api::health::routes())
         .merge(api::market::routes())
+        .merge(api::websocket::routes())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);
