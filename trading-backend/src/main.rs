@@ -10,6 +10,7 @@ mod api;
 mod db;
 mod models;
 mod exchange;
+mod auth;
 
 #[tokio::main]
 async fn main() {
@@ -51,6 +52,9 @@ async fn main() {
         // Exchange API routes
         .route("/api/v1/prices", get(exchange::api::get_prices))
         .route("/api/v1/price", get(exchange::api::get_price))
+        // Auth routes
+        .route("/api/v1/auth/register", post(auth::register))
+        .route("/api/v1/auth/login", post(auth::login))
         .with_state(exchange_service)
         .layer(cors);
 

@@ -1,8 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Dashboard from './pages/Dashboard';
+import LoginPage from './pages/Login';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState('');
   const [currentPage, setCurrentPage] = useState('dashboard');
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUsername = localStorage.getItem('username');
+    if (storedToken && storedUsername) {
+      setIsAuthenticated(true);
+      setUsername(storedUsername);
+    }
+  }, []);
+
+  const handleLogin = (_token: string, user: string) => {
+    setIsAuthenticated(true);
+    setUsername(user);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    setIsAuthenticated(false);
+    setUsername('');
+  };
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   return (
     <div className="app">
@@ -40,6 +68,9 @@ function App() {
             onClick={() => setCurrentPage('settings')}
           >
             Settings
+          </li>
+          <li onClick={handleLogout} className="logout">
+            Logout ({username})
           </li>
         </ul>
       </nav>
