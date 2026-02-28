@@ -2,60 +2,74 @@ name: CI
 
 on:
   push:
-    branches: [develop, main]
+    branches: [develop, master, main]
   pull_request:
-    branches: [develop, main]
+    branches: [develop, master, main]
 
 jobs:
-  build-frontend:
+  # Frontend CI
+  frontend:
+    name: Frontend Build & Test
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: trading-frontend/package-lock.json
-      
-      - name: Install dependencies
-        run: |
-          cd trading-frontend
-          npm ci
-      
-      - name: Build frontend
-        run: |
-          cd trading-frontend
-          npm run build
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: trading-frontend/dist
 
-  build-backend:
+      - name: Install dependencies
+        working-directory: ./trading-frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: ./trading-frontend
+        run: npm run lint
+
+      - name: TypeScript type check
+        working-directory: ./trading-frontend
+        run: npx tsc --noEmit
+
+      - name: Build frontend
+        working-directory: ./trading-frontend
+        run: npm run build
+
+  # Backend CI
+  backend:
+    name: Backend Build & Test
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-      
-      - name: Cache cargo
+          components: rustfmt, clippy
+
+      - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: './trading-backend -> target'
-      
+          workspaces: ./trading-backend -> target
+
+      - name: Check formatting
+        working-directory: ./trading-backend
+        run: cargo fmt --check
+
+      - name: Clippy linting
+        working-directory: ./trading-backend
+        run: cargo clippy -- -D warnings
+
       - name: Build backend
-        run: |
-          cd trading-backend
-          cargo build --release
-      
+        working-directory: ./trading-backend
+        run: cargo build --release
+
       - name: Run tests
-        run: |
-          cd trading-backend
-          cargo test
+        working-directory: ./trading-backend
+        run: cargo test
