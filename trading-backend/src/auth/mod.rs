@@ -1,7 +1,10 @@
+pub mod middleware;
+
 use axum::{
     extract::State,
     http::StatusCode,
     response::Json,
+    Extension,
 };
 use serde::{Deserialize, Serialize};
 use jsonwebtoken::{encode, decode, Header, Validation, EncodingKey, DecodingKey};
@@ -9,8 +12,9 @@ use chrono::{Utc, Duration};
 use bcrypt::{hash, verify};
 use sqlx::Pool;
 use sqlx::Postgres;
+use std::sync::Arc;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
     pub user_id: i64,
@@ -125,4 +129,9 @@ pub async fn login(
         user_id: user.0,
         username: user.1,
     }))
+}
+
+/// Extract the current user from request extensions
+pub fn get_current_user(Extension(claims): Extension<Claims>) -> Claims {
+    claims
 }
