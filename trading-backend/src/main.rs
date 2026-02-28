@@ -1,6 +1,8 @@
 use axum::{
     routing::{get, post},
     Router,
+    extract::ws::{WebSocket, WebSocketUpgrade},
+    response::Response,
 };
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
@@ -52,6 +54,8 @@ async fn main() {
         // Exchange API routes
         .route("/api/v1/prices", get(exchange::api::get_prices))
         .route("/api/v1/price", get(exchange::api::get_price))
+        // WebSocket endpoint for real-time market data
+        .route("/ws/market", get(ws_market_handler))
         // Auth routes
         .route("/api/v1/auth/register", post(auth::register))
         .route("/api/v1/auth/login", post(auth::login))
@@ -67,4 +71,61 @@ async fn main() {
 
 async fn root() -> &'static str {
     "Trading Backend API v1.0"
+}
+
+/// WebSocket handler for real-time market data
+async fn ws_market_handler(
+    ws: WebSocketUpgrade,
+    axum::State(state): axum::State<exchange::ExchangeService>,
+) -> Response {
+    ws.on_upgrade(move |socket| handle_socket(socket, state))
+}
+
+async fn handle_socket(socket: WebSocket, state: exchange::ExchangeService) {
+    use futures_util::{SinkExt, StreamExt};
+    
+    let (mut sender, mut receiver) = socket.split();
+    
+    // Send initial prices
+    let symbols = ["btcusdt", "ethusdt", "bnbusdt", "solusdt", "xrpusdt"];
+    if let Ok(prices) = state.get_prices(&symbols).await {
+        if let Ok(json) = serde_json::to_string(&prices) {
+            let _ = sender.send(axum::extract::ws::Message::Text(json.into())).await;
+        }
+    }
+
+    // Subscribe to price updates and send to client
+    let state_clone = state.clone();
+    let mut sender_clone = sender;
+    
+    tokio::spawn(async move {
+        // Send price updates every second
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
+        loop {
+            interval.tick().await;
+            
+            let symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT"];
+            let mut updates = Vec::new();
+            
+            for symbol in symbols {
+                if let Some(ticker) = state_clone.get_cached_price(symbol).await {
+                    updates.push(ticker);
+                }
+            }
+            
+            if !updates.is_empty() {
+                if let Ok(json) = serde_json::to_string(&updates) {
+                    let _ = sender_clone.send(axum::extract::ws::Message::Text(json.into())).await;
+                }
+            }
+        }
+    });
+
+    // Handle incoming messages (e.g., subscribe to specific symbols)
+    while let Some(msg) = receiver.next().await {
+        if let Ok(axum::extract::ws::Message::Text(text)) = msg {
+            // Handle subscription requests if needed
+            tracing::debug!("Received WebSocket message: {}", text);
+        }
+    }
 }
