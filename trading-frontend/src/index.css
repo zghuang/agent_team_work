@@ -88,7 +88,7 @@ body {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   grid-template-rows: auto auto;
   gap: 20px;
 }
@@ -216,110 +216,109 @@ body {
   margin-bottom: 10px;
 }
 
-/* Login Page */
-.login-page {
-  min-height: 100vh;
+/* Symbol Selector */
+.symbol-selector {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #0f0f1a;
+  gap: 10px;
+  margin-bottom: 15px;
 }
 
-.login-card {
-  background: #1a1a2e;
-  padding: 40px;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.login-card h1 {
-  font-size: 28px;
-  margin-bottom: 8px;
-  text-align: center;
-}
-
-.login-card .subtitle {
-  color: #71717a;
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: #a1a1aa;
-  font-size: 14px;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #2b2b43;
-  border-radius: 8px;
-  background: #0f0f1a;
-  color: #e1e1e6;
-  font-size: 16px;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #6366f1;
-}
-
-.error-message {
-  color: #ef5350;
-  font-size: 14px;
-  margin-bottom: 16px;
-  text-align: center;
-}
-
-.login-button {
-  width: 100%;
-  padding: 14px;
-  background: #6366f1;
-  color: white;
+.symbol-selector button {
+  padding: 8px 20px;
+  background: #2b2b43;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: all 0.2s;
   font-weight: 600;
+}
+
+.symbol-selector button:hover {
+  background: #3b3b5c;
+}
+
+.symbol-selector button.active {
+  background: #6366f1;
+  color: white;
+}
+
+/* Messages Section */
+.messages-section {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.messages-section h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #a1a1aa;
+}
+
+.messages-list {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.message-item {
+  padding: 12px;
+  background: #2b2b43;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.message-item:last-child {
+  margin-bottom: 0;
+}
+
+.message-content {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #e1e1e6;
+}
+
+.message-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #71717a;
+}
+
+.message-type {
+  background: #3b3b5c;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.message-source {
+  color: #6366f1;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #71717a;
+}
+
+.no-messages {
+  text-align: center;
+  padding: 20px;
+  color: #71717a;
+}
+
+.refresh-btn {
+  margin-top: 15px;
+  width: 100%;
+  padding: 10px;
+  background: #2b2b43;
+  border: none;
+  border-radius: 8px;
+  color: #a1a1aa;
   cursor: pointer;
   transition: background 0.2s;
 }
 
-.login-button:hover:not(:disabled) {
-  background: #4f46e5;
-}
-
-.login-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.toggle-mode {
-  text-align: center;
-  margin-top: 20px;
-  color: #71717a;
-}
-
-.toggle-mode button {
-  background: none;
-  border: none;
-  color: #6366f1;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.toggle-mode button:hover {
-  text-decoration: underline;
-}
-
-.logout {
-  margin-top: 20px;
-  color: #ef5350 !important;
+.refresh-btn:hover {
+  background: #3b3b5c;
 }
