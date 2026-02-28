@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface Ticker {
   symbol: string;
@@ -12,32 +12,85 @@ interface Ticker {
 export default function useCryptoPrices() {
   const [prices, setPrices] = useState<Ticker[]>([]);
   const [loading, setLoading] = useState(true);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const connectWebSocket = useCallback(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/market`;
+    
+    // Fallback to localhost if not available
+    const finalUrl = wsUrl.replace(window.location.host, 'localhost:8080');
+    
+    try {
+      const ws = new WebSocket(finalUrl);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        setLoading(false);
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (Array.isArray(data)) {
+            setPrices(data);
+          }
+        } catch (e) {
+          console.error('Failed to parse WebSocket message:', e);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket disconnected, reconnecting...');
+        // Reconnect after 3 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connectWebSocket();
+        }, 3000);
+      };
+      
+      wsRef.current = ws;
+    } catch (error) {
+      console.error('Failed to connect WebSocket:', error);
+      // Fallback to REST API
+      fetchPrices();
+    }
+  }, []);
+
+  const fetchPrices = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/prices');
+      if (response.ok) {
+        const data = await response.json();
+        setPrices(data);
+      } else {
+        setPrices(getFallbackPrices());
+      }
+    } catch {
+      console.error('Failed to fetch prices');
+      setPrices(getFallbackPrices());
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/api/v1/prices');
-        if (response.ok) {
-          const data = await response.json();
-          setPrices(data);
-        } else {
-          // Use fallback data if API not available
-          setPrices(getFallbackPrices());
-        }
-      } catch {
-        console.error('Failed to fetch prices');
-        setPrices(getFallbackPrices());
-      } finally {
-        setLoading(false);
+    // Try WebSocket first, fall back to REST
+    connectWebSocket();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
     };
-
-    fetchPrices();
-    
-    // Refresh every 10 seconds
-    const interval = setInterval(fetchPrices, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [connectWebSocket]);
 
   return { prices, loading };
 }
