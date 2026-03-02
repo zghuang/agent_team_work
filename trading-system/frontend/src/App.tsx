@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Markets from './pages/Markets';
 import Strategies from './pages/Strategies';
 import Settings from './pages/Settings';
+import Charts from './pages/Charts';
 import Layout from './components/Layout';
 
 const queryClient = new QueryClient({
@@ -25,6 +26,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/markets" element={<Markets />} />
             <Route path="/strategies" element={<Strategies />} />
+            <Route path="/charts" element={<Charts />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Layout>
