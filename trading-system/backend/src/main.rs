@@ -46,6 +46,8 @@ async fn main() {
         .merge(api::health::routes())
         .merge(api::market::routes())
         .merge(api::websocket::routes())
+        .merge(api::portfolio::routes())
+        .merge(api::orders::routes())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);
