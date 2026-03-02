@@ -9,24 +9,25 @@ const api = axios.create({
 
 // Market Data
 export const marketApi = {
-  getTicker: (base: string, quote: string, exchange: string) =>
+  getTicker: (symbol?: string) => 
+    api.get('/api/market/ticker', { params: { symbol } }),
+  getTickerPost: (base: string, quote: string, exchange: string) =>
     api.post('/api/market/ticker', { base, quote, exchange }),
-  
   getCandles: (base: string, quote: string, exchange: string, interval?: string, limit?: number) =>
     api.post('/api/market/candles', { base, quote, exchange, interval, limit }),
 };
 
 // Orders
 export const orderApi = {
-  placeOrder: (order: any) => api.post('/api/orders', order),
-  cancelOrder: (orderId: string) => api.delete(`/api/orders/${orderId}`),
-  getOrders: () => api.get('/api/orders'),
+  list: (filter?: { symbol?: string; status?: string; side?: string }) =>
+    api.get('/api/orders', { params: filter }),
+  get: (id: string) => api.get(`/api/orders/${id}`),
+  create: (order: any) => api.post('/api/orders', order),
 };
 
 // Portfolio
 export const portfolioApi = {
-  getPositions: () => api.get('/api/portfolio/positions'),
-  getHistory: () => api.get('/api/portfolio/history'),
+  get: () => api.get('/api/portfolio'),
 };
 
 // Strategies
