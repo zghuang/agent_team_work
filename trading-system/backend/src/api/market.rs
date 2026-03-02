@@ -1,6 +1,7 @@
 //! Market Data API Routes
 
 use axum::{
+    extract::Query,
     routing::{get, post},
     Router,
 };
@@ -48,6 +49,11 @@ pub struct CandlesRequest {
     pub limit: Option<u32>,
 }
 
+#[derive(Deserialize)]
+pub struct TickerQuery {
+    pub symbol: Option<String>,
+}
+
 // Placeholder for market service - would be injected via state
 async fn get_ticker_handler(
     axum::extract::Json(req): axum::extract::Json<TickerRequest>,
@@ -64,6 +70,46 @@ async fn get_ticker_handler(
     };
 
     axum::Json(ApiResponse::success(ticker))
+}
+
+async fn get_ticker_by_symbol(
+    Query(query): Query<TickerQuery>,
+) -> axum::Json<ApiResponse<Vec<Ticker>>> {
+    // Return common tickers
+    let symbols = query.symbol.map(|s| vec![s]).unwrap_or_else(|| {
+        vec!["BTC/USDT".to_string(), "ETH/USDT".to_string(), "SOL/USDT".to_string()]
+    });
+    
+    let tickers: Vec<Ticker> = symbols
+        .iter()
+        .map(|s| {
+            let parts: Vec<&str> = s.split('/').collect();
+            let (base, quote) = if parts.len() >= 2 {
+                (parts[0].to_string(), parts[1].to_string())
+            } else {
+                (s.to_string(), "USDT".to_string())
+            };
+            
+            // Mock prices based on symbol
+            let price = match base.to_uppercase().as_str() {
+                "BTC" => 50000.0,
+                "ETH" => 3000.0,
+                "SOL" => 100.0,
+                "BNB" => 350.0,
+                "XRP" => 0.6,
+                _ => 100.0,
+            };
+            
+            Ticker {
+                symbol: s.clone(),
+                price,
+                volume: 1000.0 + (price * 10.0),
+                timestamp: chrono::Utc::now(),
+            }
+        })
+        .collect();
+
+    axum::Json(ApiResponse::success(tickers))
 }
 
 async fn get_candles_handler(
@@ -91,5 +137,45 @@ async fn get_candles_handler(
 pub fn routes() -> Router {
     Router::new()
         .route("/api/market/ticker", post(get_ticker_handler))
+        .route("/api/market/ticker", get(get_ticker_by_symbol))
         .route("/api/market/candles", post(get_candles_handler))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_api_response_success() {
+        let response = ApiResponse::success("test data");
+        assert!(response.success);
+        assert!(response.data.is_some());
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn test_api_response_error() {
+        let response = ApiResponse::<String>::error("error message");
+        assert!(!response.success);
+        assert!(response.data.is_none());
+        assert_eq!(response.error, Some("error message".to_string()));
+    }
+
+    #[test]
+    fn test_symbol_parsing() {
+        let symbol = "BTC/USDT".to_string();
+        let parts: Vec<&str> = symbol.split('/').collect();
+        assert_eq!(parts.len(), 2);
+        assert_eq!(parts[0], "BTC");
+        assert_eq!(parts[1], "USDT");
+    }
+
+    #[test]
+    fn test_ticker_price_calculation() {
+        let base_price = 50000.0;
+        let volume = 1000.0;
+        let estimated_volume_usd = base_price * volume;
+        
+        assert_eq!(estimated_volume_usd, 50_000_000.0);
+    }
 }
