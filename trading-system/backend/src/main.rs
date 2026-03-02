@@ -5,9 +5,11 @@ mod core;
 mod data;
 mod models;
 
+use api::auth::AuthState;
 use api::websocket::WsState;
 use axum::Router;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -15,6 +17,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[derive(Clone)]
 struct AppState {
     ws_state: WsState,
+    auth_state: Arc<AuthState>,
 }
 
 #[tokio::main]
@@ -36,9 +39,15 @@ async fn main() {
         .allow_methods(Any)
         .allow_headers(Any);
 
+    // Build auth state with JWT secret (in production, load from config/env)
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| "default_development_secret_change_in_production".to_string());
+    let auth_state = Arc::new(AuthState::new(jwt_secret));
+
     // Build application state
     let state = AppState {
         ws_state: WsState::new(),
+        auth_state,
     };
 
     // Build router
@@ -46,6 +55,8 @@ async fn main() {
         .merge(api::health::routes())
         .merge(api::market::routes())
         .merge(api::websocket::routes())
+        .merge(api::auth::routes(state.auth_state.clone()))
+        .merge(api::portfolio::routes())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);
